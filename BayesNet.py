@@ -21,18 +21,18 @@ class BayesNet:
         ['A', B', 'C', 'D', 'E']
         {
             'A': {
-                'parents': None,
+                'parents': [],
                 'children': ['C', 'D'],
                 'prob': 0.3,
-                'condprob': None
+                'condprob': {}
             },
             
             ...
 
             'D': {
                 'parents': ['A', 'B'],
-                'children': None,
-                'prob': None,
+                'children': [],
+                'prob': -1,
                 'condprob': {
                     (True, True): 0.7,
                     (True, False): 0.8,
