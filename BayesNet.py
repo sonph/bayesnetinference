@@ -42,12 +42,19 @@ class BayesNet:
         }
     """
     def __init__(self, fname):
-        pass
+        self.vars = []
+        self.net = {}
+        with open(fname) as f:
+            lines = []
+            for line in f:
+                if line == '\n':
+                    self._parse(lines)
+                    lines = []
+                else:
+                    lines.append(line)
 
-    def _parseline(self, line):
-        pass
 
-    def _parsetable(self, tabl):
+    def _parse(self, line):
         pass
 
 def enum_ask(X, e, bn):
