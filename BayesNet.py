@@ -2,7 +2,7 @@
 
 import sys, re
 
-class BayesNet:
+class Net:
     """
     Class for Bayesian Network.
 
@@ -18,7 +18,7 @@ class BayesNet:
             }
 
         e.g. for ex2.bn
-        ['A', B', 'C', 'D', 'E']
+        ('A', B', 'C', 'D', 'E')
         {
             'A': {
                 'parents': [],
@@ -42,7 +42,7 @@ class BayesNet:
         }
     """
     def __init__(self, fname):
-        self.vars = []
+        self.vars = set()
         self.net = {}
         with open(fname) as f:
             lines = []
@@ -54,8 +54,38 @@ class BayesNet:
                     lines.append(line)
 
 
-    def _parse(self, line):
-        pass
+    def _parse(self, lines):
+        if len(lines) == 1:
+            #  single line
+            match = re.match(r'P\((.*)\) = (.*)\n', lines[0])
+            var, prob = match.group(1).strip(), float(match.group(2).strip())
+            self.vars.add(var)
+            self.net[var] = {
+                'parents': [], 
+                'children': [],
+                'prob': prob,
+                'condprob': {}
+            }
+        else:
+            # table header
+            match = re.match(r'(.*) \| (.*)', lines[0])
+            parents, var = match.group(1).split(), match.group(2).strip()
+            self.vars.add(var)
+            for p in parents:
+                self.net[p]['children'].append(var)
+            self.net[var] = {
+                'parents': parents,
+                'children': [],
+                'prob': -1,
+                'condprob': {}
+            }
+
+            # table entries
+            for probline in lines[2:]:
+                match = re.match(r'(.*) \| (.*)', probline)
+                truth, prob = match.group(1).split(), float(match.group(2).strip())
+                truth = tuple(True if x == 't' else False for x in truth)
+                self.net[var]['condprob'][truth] = prob
 
 def enum_ask(X, e, bn):
     """
@@ -89,7 +119,7 @@ def query(net, alg, q):
 
 def main():
     try:
-        net = BayesNet(sys.argv[1])
+        net = Net(sys.argv[1])
 
         alg = sys.argv[2]
         assert(alg == 'enum' or alg == 'elim')
