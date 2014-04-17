@@ -44,14 +44,19 @@ class Net:
     def __init__(self, fname):
         self.vars = set()
         self.net = {}
+        lines = []
         with open(fname) as f:
-            lines = []
             for line in f:
                 if line == '\n':
+                    # parse if encounter a blank line
                     self._parse(lines)
                     lines = []
                 else:
                     lines.append(line)
+        # there is no blank line at the eof
+        # but we still have to parse the last part
+        if len(lines) != 0:
+            self._parse(lines)
 
 
     def _parse(self, lines):
@@ -114,19 +119,44 @@ def elim_ask(X, e, bn):
         Distribution over X as a tuple (t, f).
     """
 
-def query(net, alg, q):
-    pass
+def query(fname, alg, q):
+    """
+    Construct the bayes net, query and return distr.
+
+    Args:
+        fname:  File name of the bayes net
+        alg:    Algorithm to use (enum or elim)
+        q:      Query
+    """
+    #  construct net
+    try:
+        net = Net(fname)
+    except:
+        print('Failed to parse %s' % fname)
+        exit()
+
+    #  parse query
+    match = re.match(r'P\((.*)\|(.*)\)', q)
+    X = match.group(1).strip()
+    e = match.group(2).strip().split(',')
+    e = dict(x.split('=') for x in e)
+     
+    #  call function
+    if alg == 'enum':
+        enum_ask(X, e, net)
+    else:
+        elim_ask(X, e, net)
 
 def main():
     try:
-        net = Net(sys.argv[1])
+        fname = sys.argv[1]
 
         alg = sys.argv[2]
         assert(alg == 'enum' or alg == 'elim')
 
         q = sys.argv[3]
 
-        query(net, alg, q)
+        query(fname, alg, q)
     except SyntaxError:
         print('Invalid syntax for bayes net file %s' % sys.argv[1])
     except IndexError:
