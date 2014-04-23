@@ -103,6 +103,24 @@ class Net:
         """
         return tuple(x * 1/(sum(dist)) for x in dist)
 
+    def toposort(self):
+        """
+        Topological sort on the set of variables.
+
+        >>> Net('alarm.bn').toposort() 
+        ['B', 'E', 'A', 'J', 'M']
+        """
+        _vars = list(self.net.keys())
+        _vars.sort()
+        s = set()
+        l = []
+        while len(s) < len(_vars):
+            for v in _vars:
+                if v not in s and all(x in s for x in self.net[v]['parents']):
+                    s.add(v)
+                    l.append(v)
+        return l
+
     def enum_ask(self, X, e):
         """
         Calculate the distribution over the query variable X using enumeration.
