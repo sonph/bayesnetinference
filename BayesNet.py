@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import sys, re
+import sys, re, copy
 
 class Net:
     """
@@ -88,6 +88,21 @@ class Net:
                 truth = tuple(True if x == 't' else False for x in truth)
                 self.net[var]['condprob'][truth] = prob
 
+    def normalize(self, dist):
+        """
+        Normalize distribution.
+
+        Args:
+            dist:   List of probability corresponding to True and False
+
+        Returns:
+            normalized tuple
+
+        >>> print("%.3f, %.3f" % Net('alarm.bn').normalize([0.00059224, 0.0014919]))
+        0.284, 0.716
+        """
+        return tuple(x * 1/(sum(dist)) for x in dist)
+
     def enum_ask(self, X, e):
         """
         Calculate the distribution over the query variable X using enumeration.
@@ -98,6 +113,34 @@ class Net:
 
         Returns:
             Distribution over X as a tuple (t, f).
+        """
+        dist = []
+        for x in [True, False]:
+            # make a copy of the evidence set
+            _e = copy.deepcopy(e)
+
+            # extend e with value of X
+            _e[X] = x
+
+            # topological sort
+            _vars = self.toposort()
+
+            # enumerate
+            dist.append(self.enum_all(_vars, _e))
+
+        # normalize & return
+        return self.normalize(dist)
+
+    def enum_all(self, vars, e):
+        """
+        Enumerate over variables.
+
+        Args:
+            vars:   List of variables, topologically sorted
+            e:      Dictionary of evidence set.
+
+        Returns:
+            probability as a real number
         """
         pass
 
@@ -158,4 +201,6 @@ def main():
         print('Usage: %s <bayesnet> <enum|elim> <query>' % sys.argv[0])
 
 if __name__=='__main__':
+    import doctest
+    doctest.testmod()
     main()
