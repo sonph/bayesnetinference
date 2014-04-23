@@ -88,32 +88,30 @@ class Net:
                 truth = tuple(True if x == 't' else False for x in truth)
                 self.net[var]['condprob'][truth] = prob
 
-def enum_ask(X, e, bn):
-    """
-    Calculate the distribution over the query variable X using enumeration.
+    def enum_ask(self, X, e):
+        """
+        Calculate the distribution over the query variable X using enumeration.
 
-    Args:
-        X:  The query variable.
-        e:  Dictionary of evidence variables and observed values.
-        bn: Bayes net.
+        Args:
+            X:  The query variable.
+            e:  Dictionary of evidence variables and observed values.
 
-    Returns:
-        Distribution over X as a tuple (t, f).
-    """
-    pass
+        Returns:
+            Distribution over X as a tuple (t, f).
+        """
+        pass
 
-def elim_ask(X, e, bn):
-    """
-    Calculate the distribution over the query variable X using elimination.
+    def elim_ask(self, X, e):
+        """
+        Calculate the distribution over the query variable X using elimination.
 
-    Args:
-        X:  The query variable.
-        e:  Dictionary of evidence variables and observed values.
-        bn: Bayes net.
+        Args:
+            X:  The query variable.
+            e:  Dictionary of evidence variables and observed values.
 
-    Returns:
-        Distribution over X as a tuple (t, f).
-    """
+        Returns:
+            Distribution over X as a tuple (t, f).
+        """
 
 def query(fname, alg, q):
     """
@@ -139,9 +137,9 @@ def query(fname, alg, q):
      
     #  call function
     if alg == 'enum':
-        enum_ask(X, e, net)
+        net.enum_ask(X, e)
     else:
-        elim_ask(X, e, net)
+        net.elim_ask(X, e)
 
 def main():
     try:
