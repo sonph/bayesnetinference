@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import sys, re, copy
+import sys, re, copy, itertools
 
 class Net:
     """
@@ -40,6 +40,7 @@ class Net:
         }
     """
     def __init__(self, fname):
+        self.permutationsmemo = {}
         self.vars = set()
         self.net = {}
         lines = []
@@ -142,6 +143,89 @@ class Net:
             # query for prob of Y = y
             prob = self.net[Y]['condprob'][parents] if e[Y] else 1 - self.net[Y]['condprob'][parents]
         return prob
+
+    def genpermutations(self, length):
+        """
+        Generate permutations of values
+        """
+        if length in self.permutationsmemo:
+            return self.permutationsmemo[length]
+        else:
+            perms = set()
+            for comb in itertools.combinations_with_replacement([False, True], length):
+                for perm in itertools.permutations(comb):
+                    perms.add(perm)
+            perms = list(perms)
+                # perms = [(False, False, False), (False, False, True), ...]
+            assert(len(perms) == pow(2, length))
+
+            self.permutationsmemo[length] = perms
+            return perms
+
+
+    def makefactor(self, var, factorvars, e):
+        """
+        Make a factor with the factorvars[var] variables.
+
+        Args:
+            var:    Current selected variable.
+            factorvars: Dictionary of factor variables for the selected var.
+            e:      Dictionary of the evidence set
+
+        Returns:
+            tuple (list, dict) where
+                list: list of variables in alphabetical order
+                dict: mapping {tuple: float} where
+                    tuple: tuple of True/False values corresponding to the variables
+                    float: probability
+
+        >>> Net('ex2.bn').makefactor('D', {'D': ['D', 'A']}, {'B': True})
+        (['A', 'D'], {(True, True): 0.7, (True, False): 0.3, (False, True): 0.1, (False, False): 0.9})
+        """
+        variables = factorvars[var]
+        variables.sort() 
+        # for 'D' in ex2.bn: ['A', 'D']
+        # This is gonna be the keys for the factor
+        # (True, True): a => A=t, D=t, prob = a
+
+        allvars = copy.deepcopy(self.net[var]['parents'])
+        allvars.append(var)
+        # This is the list of all variables involved including those that are in
+        # the evidence set.
+        # for 'D' in ex2.bn: ['A', 'B', 'D']
+        
+        # Generate the factor entries:
+        # 1. Generate all possible permutations of values of the variables
+        #   e.g. A=t,B=t,D=t; A=t,B=t,D=f; ...
+        
+        perms = self.genpermutations(len(allvars))
+
+        # 2. We take into account the variables that are already in the evidence
+        # set by filtering out permutations that does not conform to the values
+        # that the variables already have.
+        #   e.g. B=t in e then we filter out permutations that have B=f.
+        entries = {}
+        asg = {}
+        for perm in perms:
+            violate = False
+            for pair in zip(allvars, perm): # tuples of ('var', value)
+                if pair[0] in e and e[pair[0]] != pair[1]:
+                    violate = True
+                    break
+                asg[pair[0]] = pair[1]
+
+            if violate:
+                continue
+
+        # 3. Based on the remaining permutations we generate entries for the
+        # factor.
+        #   e.g. A=t,B=t,D=t then we have A=t,D=t with prob 0.7
+        #        A=f,B=t,D=f then we have A=f,D=f with prob 0.9
+            key = tuple(asg[v] for v in variables)
+            prob = self.querygiven(var, asg)
+            entries[key] = prob
+
+        return (variables, entries)
 
     def enum_ask(self, X, e):
         """
