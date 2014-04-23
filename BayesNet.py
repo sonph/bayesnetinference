@@ -6,8 +6,7 @@ class Net:
     """
     Class for Bayesian Network.
 
-    Data structures:
-        list of variable names
+    Data structure(s):
         dictionary that maps variable names to a dictonary {
                 parents -> list of parents
                 children -> list of children
@@ -18,7 +17,6 @@ class Net:
             }
 
         e.g. for ex2.bn
-        ('A', B', 'C', 'D', 'E')
         {
             'A': {
                 'parents': [],
@@ -64,7 +62,6 @@ class Net:
             #  single line
             match = re.match(r'P\((.*)\) = (.*)\n', lines[0])
             var, prob = match.group(1).strip(), float(match.group(2).strip())
-            self.vars.add(var)
             self.net[var] = {
                 'parents': [], 
                 'children': [],
@@ -75,7 +72,6 @@ class Net:
             # table header
             match = re.match(r'(.*) \| (.*)', lines[0])
             parents, var = match.group(1).split(), match.group(2).strip()
-            self.vars.add(var)
             for p in parents:
                 self.net[p]['children'].append(var)
             self.net[var] = {
