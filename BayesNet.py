@@ -110,16 +110,38 @@ class Net:
         >>> Net('alarm.bn').toposort() 
         ['B', 'E', 'A', 'J', 'M']
         """
-        _vars = list(self.net.keys())
-        _vars.sort()
+        variables = list(self.net.keys())
+        variables.sort()
         s = set()
         l = []
-        while len(s) < len(_vars):
-            for v in _vars:
+        while len(s) < len(variables):
+            for v in variables:
                 if v not in s and all(x in s for x in self.net[v]['parents']):
                     s.add(v)
                     l.append(v)
         return l
+
+    def querygiven(self, Y, e):
+        """
+        Calculate P(y | parents(Y))
+
+        >>> net = Net('alarm.bn')
+        >>> e = {'B': False, 'E': True, 'A': False}
+        >>> net.querygiven('A', e)
+        0.71
+        """
+        # if Y has no parents
+        if self.net[Y]['prob'] != -1:
+            prob = self.net[Y]['prob'] if e[Y] else 1 - self.net[Y]['prob']
+
+        # if Y has at least 1 parent
+        else:
+            # get the value of parents of Y
+            parents = tuple(e[p] for p in self.net[Y]['parents'])
+
+            # query for prob of Y = y
+            prob = self.net[Y]['condprob'][parents] if e[Y] else 1 - self.net[Y]['condprob'][parents]
+        return prob
 
     def enum_ask(self, X, e):
         """
@@ -133,34 +155,52 @@ class Net:
             Distribution over X as a tuple (t, f).
         """
         dist = []
-        for x in [True, False]:
+        for x in [False, True]:
             # make a copy of the evidence set
-            _e = copy.deepcopy(e)
+            e = copy.deepcopy(e)
 
             # extend e with value of X
-            _e[X] = x
+            e[X] = x
 
             # topological sort
-            _vars = self.toposort()
+            variables = self.toposort()
 
             # enumerate
-            dist.append(self.enum_all(_vars, _e))
+            dist.append(self.enum_all(variables, e))
 
         # normalize & return
         return self.normalize(dist)
 
-    def enum_all(self, vars, e):
+    def enum_all(self, variables, e):
         """
         Enumerate over variables.
 
         Args:
-            vars:   List of variables, topologically sorted
-            e:      Dictionary of evidence set.
+            variables:  List of variables, topologically sorted
+            e:          Dictionary of the evidence set in form of 'var': True/False.
 
         Returns:
             probability as a real number
         """
-        pass
+        if len(variables) == 0:
+            return 1.0
+        Y = variables[0]
+        if Y in e:
+            ret = self.querygiven(Y, e) * self.enum_all(variables[1:], e)
+        else:
+            probs = []
+            e2 = copy.deepcopy(e)
+            for y in [True, False]:
+                e2[Y] = y
+                probs.append(self.querygiven(Y, e2) * self.enum_all(variables[1:], e2))
+            ret = sum(probs)
+
+        print("%-14s | %-20s = %.8f" % (
+                ' '.join(variables),
+                ' '.join('%s=%s' % (v, 't' if e[v] else 'f') for v in e),
+                ret
+            ))
+        return ret
 
     def elim_ask(self, X, e):
         """
@@ -173,6 +213,7 @@ class Net:
         Returns:
             Distribution over X as a tuple (t, f).
         """
+        pass
 
 def query(fname, alg, q):
     """
@@ -192,15 +233,25 @@ def query(fname, alg, q):
 
     #  parse query
     match = re.match(r'P\((.*)\|(.*)\)', q)
-    X = match.group(1).strip()
-    e = match.group(2).strip().split(',')
-    e = dict(x.split('=') for x in e)
+    if match:
+        X = match.group(1).strip()
+        e = match.group(2).strip().split(',')
+        edict = dict((x[0], True if x[2] == 't' else False) for x in e)
+    else:
+        match = re.match(r'P\((.*)\)', q)
+        X = match.group(1).strip()
+        e = []
+        edict = {}
      
     #  call function
-    if alg == 'enum':
-        net.enum_ask(X, e)
-    else:
-        net.elim_ask(X, e)
+    dist = net.enum_ask(X, edict) if alg == 'enum' else net.elim_ask(X, edict)
+    print("\nRESULT:")
+    for prob, x in zip(dist, [False, True]):
+        print("P(%s = %s | %s) = %.8f" %
+                (X,
+                't' if x else 'f',
+                ', '.join('%s = %s' % tuple(v.split('=')) for v in e),
+                prob))
 
 def main():
     try:
