@@ -441,7 +441,7 @@ class Net:
                     for pair in zip(factor[0], perm):
                         asg[pair[0]] = pair[1]
                     key = tuple(asg[v] for v in factor[0])
-                    print('%s: %f' % (
+                    print('%s: %.4f' % (
                             ' '.join('%s=%s' % (k, 't' if asg[k] else 'f') for k in sorted(asg.keys())),
                             factor[1][key]
                         ))
@@ -488,7 +488,7 @@ def query(fname, alg, q):
     dist = net.enum_ask(X, edict) if alg == 'enum' else net.elim_ask(X, edict)
     print("\nRESULT:")
     for prob, x in zip(dist, [False, True]):
-        print("P(%s = %s | %s) = %.8f" %
+        print("P(%s = %s | %s) = %.4f" %
                 (X,
                 't' if x else 'f',
                 ', '.join('%s = %s' % tuple(v.split('=')) for v in e),
@@ -511,6 +511,6 @@ def main():
     query(fname, alg, q)
 
 if __name__=='__main__':
-    import doctest
-    doctest.testmod()
+    # import doctest
+    # doctest.testmod()
     main()
