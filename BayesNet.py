@@ -227,6 +227,48 @@ class Net:
 
         return (variables, entries)
 
+    def sumout(self, var, factors):
+        """
+        Sum out factors based on var.
+
+        Args:
+            var:    The selected variable.
+            factors:    List of factors in form of ([vars], {entries})
+
+        Returns:
+            A new list of summed out factors.
+
+        >>> Net('ex2.bn').sumout('D', [(['A', 'D'], {(True, True): 0.7, (True, False): 0.3, (False, True): 0.1, (False, False): 0.9})])
+        [(['A'], {(False,): 1.0, (True,): 1.0})]
+        """
+        # for each factor
+        for i, factor in enumerate(factors):
+            # for each variable in the factor's variable list
+            for j, v in enumerate(factor[0]):
+                # if the variable is the hidden one
+                if v == var:
+
+                    # variable list of the new factor
+                    newvariables = factor[0][:j] + factor[0][j+1:]
+
+                    # probability table of the new factor
+                    newentries = {}
+                    for entry in factor[1]:
+                        entry = list(entry)
+                        newkey = tuple(entry[:j] + entry[j+1:])
+
+                        entry[j] = True
+                        prob1 = factor[1][tuple(entry)]
+                        entry[j] = False
+                        prob2 = factor[1][tuple(entry)]
+                        prob = prob1 + prob2
+                        
+                        newentries[newkey] = prob
+
+                    # replace the old factor
+                    factors[i] = (newvariables, newentries)
+        return factors
+
     def enum_ask(self, X, e):
         """
         Calculate the distribution over the query variable X using enumeration.
