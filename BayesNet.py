@@ -227,6 +227,41 @@ class Net:
 
         return (variables, entries)
 
+    def pointwise(self, var, factor1, factor2):
+        """
+        Pointwise-product of factors that contain a common variable.
+
+        Args:
+            var:    common variable
+            factors:    List of factors
+
+        Returns:
+            list of new factors
+
+        >>> factor1 = (['C', 'E'], {(False, False): 0.8, (False, True): 0.2, (True, True): 0.7, (True, False): 0.3})
+        >>> factor2 = (['A', 'C'], {(True, True): 0.8, (True, False): 0.2, (False, True): 0.4, (False, False): 0.6})
+        >>> Net('ex2.bn').pointwise('C', factor1, factor2)
+        """
+        newvariables = []
+        newvariables.extend(factor1[0])
+        newvariables.extend(factor2[0])
+        newvariables = list(set(newvariables))
+        newvariables.sort()
+
+        perms = self.genpermutations(len(newvariables))
+        newtable = {}
+        asg = {}
+        for perm in perms:
+            for pair in zip(newvariables, perm):
+                asg[pair[0]] = pair[1]
+            key = tuple(asg[v] for v in newvariables)
+            key1 = tuple(asg[v] for v in factor1[0])
+            key2 = tuple(asg[v] for v in factor2[0])
+            prob = factor1[1][key1] * factor2[1][key2]
+            newtable[key] = prob
+
+        return (newvariables, newtable)
+
     def sumout(self, var, factors):
         """
         Sum out factors based on var.
@@ -241,6 +276,22 @@ class Net:
         >>> Net('ex2.bn').sumout('D', [(['A', 'D'], {(True, True): 0.7, (True, False): 0.3, (False, True): 0.1, (False, False): 0.9})])
         [(['A'], {(False,): 1.0, (True,): 1.0})]
         """
+        # POINTWISE
+        pwfactors = []  # list of factors containing var
+        indices = []
+        for i, factor in enumerate(factors):
+            if var in factor[0]:
+                pwfactors.append(factor)
+                indices.append(i)
+        if len(pwfactors) > 1:
+            for i in reversed(indices):
+                del factors[i]
+            result = pwfactors[0]
+            for factor in pwfactors[1:]:
+                result = self.pointwise(var, result, factor)
+            factors.append(result)
+
+        # SUM OUT
         # for each factor
         for i, factor in enumerate(factors):
             # for each variable in the factor's variable list
@@ -267,6 +318,8 @@ class Net:
 
                     # replace the old factor
                     factors[i] = (newvariables, newentries)
+                    if len(newvariables) == 0:
+                        del factors[i]
         return factors
 
     def enum_ask(self, X, e):
@@ -278,7 +331,7 @@ class Net:
             e:  Dictionary of evidence variables and observed values.
 
         Returns:
-            Distribution over X as a tuple (t, f).
+            Distribution over X as a tuple (P(X=f | e), P(X=t | e))
         """
         dist = []
         for x in [False, True]:
@@ -337,9 +390,71 @@ class Net:
             e:  Dictionary of evidence variables and observed values.
 
         Returns:
-            Distribution over X as a tuple (t, f).
+            Distribution over X as a tuple (P(X=f | e), P(X=t | e))
         """
-        pass
+        eliminated = set()
+        factors = []
+
+        while len(eliminated) < len(self.net):
+            # 1.determine variable order
+            # a. filter variables whose children have been eliminated
+            # b. count the number of variables in the factor
+            #   - do not count variables that are in the ~~query or~~ evidence set
+            #   - only count the variable itself and its immediate parents
+            # c. sort and break ties alphabetically
+            
+            # filter variables that are eliminated
+            variables = filter(lambda v: v not in eliminated, list(self.net.keys()))
+
+            # filter variables that have some children that have not been eliminated
+            variables = filter(lambda v: all(c in eliminated for c in self.net[v]['children']), 
+                                variables)
+
+            # enumerate the variables in the factor associated with the variable
+            factorvars = {}
+            for v in variables:
+                factorvars[v] = [p for p in self.net[v]['parents'] if p not in e ]#and p != X]
+                if v not in e: #and v != X:
+                    factorvars[v].append(v)
+
+            # sort according to the number of variables in the factor and then alphabetically
+            var = sorted(factorvars.keys(), key=(lambda x: (len(factorvars[x]), x)))[0]
+            print('----- Variable: %s -----' % var)
+
+            # 2. make factor
+            # if all factors contain some var then run pointwise-product?
+            if len(factorvars[var]) > 0:
+                factors.append(self.makefactor(var, factorvars, e))
+
+            # 3. if the selected var is a hidden var (not in the query or evidence
+            #   set), then sum out the factors
+            if var != X and var not in e:
+                factors = self.sumout(var, factors)
+            
+            eliminated.add(var)
+            print('Factors:')
+            for factor in factors:
+                asg = {}
+                perms = list(self.genpermutations(len(factor[0])))
+                perms.sort()
+                for perm in perms:
+                    for pair in zip(factor[0], perm):
+                        asg[pair[0]] = pair[1]
+                    key = tuple(asg[v] for v in factor[0])
+                    print('%s: %f' % (
+                            ' '.join('%s=%s' % (k, 't' if asg[k] else 'f') for k in sorted(asg.keys())),
+                            factor[1][key]
+                        ))
+                print()
+        
+        # calculate the pointwise-product then normalize
+        if len(factors) >= 2:
+            result = factors[0]
+            for factor in factors[1:]:
+                result = self.pointwise(var, result, factor)
+        else:
+            result = factors[0]
+        return self.normalize((result[1][(False,)], result[1][(True,)]))
 
 def query(fname, alg, q):
     """
@@ -387,13 +502,13 @@ def main():
         assert(alg == 'enum' or alg == 'elim')
 
         q = sys.argv[3]
-
-        query(fname, alg, q)
     except SyntaxError:
         print('Invalid syntax for bayes net file %s' % sys.argv[1])
     except IndexError:
         print('Not enough argument.')
         print('Usage: %s <bayesnet> <enum|elim> <query>' % sys.argv[0])
+
+    query(fname, alg, q)
 
 if __name__=='__main__':
     import doctest
