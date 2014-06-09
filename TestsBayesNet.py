@@ -44,6 +44,31 @@ class TestBayesNet(unittest.TestCase):
         res = self.net_ex2.toposort()
         self.assertEqual(res, ['A', 'B', 'C', 'D', 'E'])
 
+    def test_querygiven_alarm(self):
+        cases = [
+            (('B', {'B': False}), .999),
+            (('B', {'B': True}), .001),
+            (('A', {'A': True, 'B': True, 'E': False}), .94),
+            (('A', {'A': False, 'B': False, 'E': True}), .71),
+            (('A', {'A': False, 'B': False, 'E': False}), .999),
+            (('M', {'M': False, 'A': False}), .99)
+        ]
+        for i, o in cases:
+            self.assertAlmostEqual(self.net_alarm.querygiven(*i), o)
+
+    def test_querygiven_ex2(self):
+        cases = [
+            (('A', {'A': False}), 0.7),
+            (('B', {'B': True}), 0.6),
+            (('E', {'C': True, 'E': False}), 0.3),
+            (('D', {'B': False, 'A': True, 'D': False}), 0.2),
+            (('D', {'B': False, 'A': True, 'D': True}), 0.8),
+            (('C', {'C': True, 'A': True}), 0.8),
+            (('C', {'C': False, 'A': False}), 0.6)
+        ]
+        for i, o in cases:
+            self.assertAlmostEqual(self.net_ex2.querygiven(*i), o)
+
 if __name__ == '__main__':
     unittest.main()
 
