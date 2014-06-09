@@ -40,6 +40,12 @@ class Net:
         }
     """
     def __init__(self, fname):
+        """
+        Initialize the network; read and parse the given file.
+
+        Args:
+            fname:  Name of the file containing the data.
+        """
         self.permutationsmemo = {}
         self.net = {}
         lines = []  # buffer
@@ -58,6 +64,12 @@ class Net:
 
 
     def _parse(self, lines):
+        """
+        Parse the line(s) comprising a node and add the data to the net.
+
+        Args:
+            lines:  List of lines.
+        """
         if len(lines) == 1:
             # single line node/buffer
             match = re.match(r'P\((.*)\) = (.*)\n', lines[0])
@@ -91,13 +103,13 @@ class Net:
 
     def normalize(self, dist):
         """
-        Normalize distribution.
+        Normalize the probability values so that they add up to 1.0.
 
         Args:
-            dist:   List of probability corresponding to True and False
+            dist:   List of probability values.
 
         Returns:
-            normalized tuple
+            Tuple of normalized values.
 
         >>> print("%.3f, %.3f" % Net('alarm.bn').normalize([0.00059224, 0.0014919]))
         0.284, 0.716
@@ -106,26 +118,38 @@ class Net:
 
     def toposort(self):
         """
-        Topological sort on the set of variables.
+        Run a topological sort to determine the order of the variables.
 
         >>> Net('alarm.bn').toposort() 
         ['B', 'E', 'A', 'J', 'M']
         """
         variables = list(self.net.keys())
         variables.sort()
-        s = set()
+        s = set()   # used to mark variables
         l = []
         while len(s) < len(variables):
             for v in variables:
                 if v not in s and all(x in s for x in self.net[v]['parents']):
+                    # add the variable `v` into the set `s` iff
+                    # all parents of `v` are already in `s`.
                     s.add(v)
                     l.append(v)
         return l
 
     def querygiven(self, Y, e):
         """
-        Calculate P(y | parents(Y))
+        Query P(Y | e), or the probability of the variable `Y`, given the
+        evidence set `e`, extended with the value of `Y`.
 
+        Args:
+            Y:  The variable for which we calculate the probability distribution.
+            e:  The evidence set in the form of a dictionary 
+                    { string name: boolean value }, extended with the value of Y.
+
+        Returns:
+            A single double representing the probability that Y has the specified value.
+
+        Example: query the probability that A is False given B is False and E is True.
         >>> net = Net('alarm.bn')
         >>> e = {'B': False, 'E': True, 'A': False}
         >>> net.querygiven('A', e)
@@ -146,7 +170,10 @@ class Net:
 
     def genpermutations(self, length):
         """
-        Generate permutations of values
+        Generate tuples of boolean values that have the specified length.
+
+        Returns:
+            A list of 2^length distinct tuples.
         """
         if length in self.permutationsmemo:
             return self.permutationsmemo[length]
@@ -168,7 +195,7 @@ class Net:
         Make a factor with the factorvars[var] variables.
 
         Args:
-            var:    Current selected variable.
+            var:    The currently selected variable.
             factorvars: Dictionary of factor variables for the selected var.
             e:      Dictionary of the evidence set
 
