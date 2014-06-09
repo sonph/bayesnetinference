@@ -68,7 +68,7 @@ class Net:
         Parse the line(s) comprising a node and add the data to the net.
 
         Args:
-            lines:  List of lines.
+            lines:  Buffer/list of lines.
         """
         if len(lines) == 1:
             # single line node/buffer
@@ -110,18 +110,14 @@ class Net:
 
         Returns:
             Tuple of normalized values.
-
-        >>> print("%.3f, %.3f" % Net('alarm.bn').normalize([0.00059224, 0.0014919]))
-        0.284, 0.716
         """
         return tuple(x * 1/(sum(dist)) for x in dist)
 
     def toposort(self):
         """
         Run a topological sort to determine the order of the variables.
-
-        >>> Net('alarm.bn').toposort() 
-        ['B', 'E', 'A', 'J', 'M']
+        All parents of a node has to be added before the node is added, and ties
+        are broken alphabetically.
         """
         variables = list(self.net.keys())
         variables.sort()
@@ -139,7 +135,8 @@ class Net:
     def querygiven(self, Y, e):
         """
         Query P(Y | e), or the probability of the variable `Y`, given the
-        evidence set `e`, extended with the value of `Y`.
+        evidence set `e`, extended with the value of `Y`. All immediate parents
+        of Y have to be in `e`.
 
         Args:
             Y:  The variable for which we calculate the probability distribution.
