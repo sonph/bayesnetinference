@@ -41,7 +41,6 @@ class Net:
     """
     def __init__(self, fname):
         self.permutationsmemo = {}
-        self.vars = set()
         self.net = {}
         lines = []  # buffer
         with open(fname) as f:
