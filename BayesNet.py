@@ -172,6 +172,7 @@ class Net:
         Returns:
             A list of 2^length distinct tuples.
         """
+        assert(length >= 0)
         if length in self.permutationsmemo:
             return self.permutationsmemo[length]
         else:

@@ -69,6 +69,14 @@ class TestBayesNet(unittest.TestCase):
         for i, o in cases:
             self.assertAlmostEqual(self.net_ex2.querygiven(*i), o)
 
+    def test_genpermutations(self):
+        cases = [0, 1, 2, 5]
+        for c in cases:
+            res = self.net_alarm.genpermutations(c)
+            for r in res:
+                self.assertEqual(len(r), c)
+            self.assertEqual(len(set(res)), len(res))
+
 if __name__ == '__main__':
     unittest.main()
 
@@ -76,9 +84,6 @@ if __name__ == '__main__':
 Net
     __init__
     _parse
-    - normalize
-    - toposort
-    querygiven
     genpermutations
     makefactor
     pointwise
