@@ -203,9 +203,6 @@ class Net:
                 dict: mapping {tuple: float} where
                     tuple: tuple of True/False values corresponding to the variables
                     float: probability
-
-        >>> Net('ex2.bn').makefactor('D', {'D': ['D', 'A']}, {'B': True})
-        (['A', 'D'], {(True, True): 0.7, (True, False): 0.3, (False, True): 0.1, (False, False): 0.9})
         """
         variables = factorvars[var]
         variables.sort() 
@@ -262,10 +259,6 @@ class Net:
 
         Returns:
             list of new factors
-
-        >>> factor1 = (['C', 'E'], {(False, False): 0.8, (False, True): 0.2, (True, True): 0.7, (True, False): 0.3})
-        >>> factor2 = (['A', 'C'], {(True, True): 0.8, (True, False): 0.2, (False, True): 0.4, (False, False): 0.6})
-        >>> Net('ex2.bn').pointwise('C', factor1, factor2)
         """
         newvariables = []
         newvariables.extend(factor1[0])
@@ -297,9 +290,6 @@ class Net:
 
         Returns:
             A new list of summed out factors.
-
-        >>> Net('ex2.bn').sumout('D', [(['A', 'D'], {(True, True): 0.7, (True, False): 0.3, (False, True): 0.1, (False, False): 0.9})])
-        [(['A'], {(False,): 1.0, (True,): 1.0})]
         """
         # POINTWISE
         pwfactors = []  # list of factors containing var

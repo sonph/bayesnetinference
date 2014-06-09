@@ -77,6 +77,27 @@ class TestBayesNet(unittest.TestCase):
                 self.assertEqual(len(r), c)
             self.assertEqual(len(set(res)), len(res))
 
+    def test_makefactor0(self):
+        i = ('D', {'D': ['D', 'A']}, {'B': True})
+        o = (['A', 'D'], {(True, True): 0.7, (True, False): 0.30000000000000004, 
+            (False, True): 0.1, (False, False): 0.9})
+        self.assertEqual(self.net_ex2.makefactor(*i), o)
+
+    def test_pointwise0(self):
+        i1 = (['C', 'E'], {(False, False): 0.8, (False, True): 0.2, (True, True): 0.7, (True, False): 0.3})
+        i2 = (['A', 'C'], {(True, True): 0.8, (True, False): 0.2, (False, True): 0.4, (False, False): 0.6})
+        o = (['A', 'C', 'E'], {(False, True, True): 0.27999999999999997, 
+            (False, False, False): 0.48, (True, True, False): 0.24, 
+            (True, False, False): 0.16000000000000003, (False, True, False): 0.12, 
+            (False, False, True): 0.12, (True, True, True): 0.5599999999999999, 
+            (True, False, True): 0.04000000000000001})
+        self.assertEqual(self.net_ex2.pointwise('C', i1, i2), o)
+
+    def test_sumout0(self):
+        self.assertEqual(self.net_ex2.sumout('D', [(['A', 'D'], {(True, True): 0.7, 
+            (True, False): 0.3, (False, True): 0.1, (False, False): 0.9})]),
+        [(['A'], {(False,): 1.0, (True,): 1.0})])
+
 if __name__ == '__main__':
     unittest.main()
 
@@ -84,7 +105,6 @@ if __name__ == '__main__':
 Net
     __init__
     _parse
-    genpermutations
     makefactor
     pointwise
     sumout
