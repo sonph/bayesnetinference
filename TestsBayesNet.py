@@ -98,19 +98,28 @@ class TestBayesNet(unittest.TestCase):
             (True, False): 0.3, (False, True): 0.1, (False, False): 0.9})]),
         [(['A'], {(False,): 1.0, (True,): 1.0})])
 
+    def test_alarm_ask1(self):
+        inputs = [
+            ('B', {'J': False, 'M': True}),
+            ('A', {'B': True, 'E': False, 'J': True, 'M': True}),
+            ('M', {'B': False, 'E': False}),
+            ('E', {'B': True}),
+            ('E', {'A': True, 'M': False})
+        ]
+        outputs = [
+            (0.9931, 0.0069),
+            (0.0001, 0.9999),
+            (0.9893, 0.0107),
+            (0.9980, 0.0020),
+            (0.7690, 0.2310)
+        ]
+        for i, i1 in enumerate(inputs):
+            res = self.net_alarm.enum_ask(*i1)
+            self.assertEqual(round(res[0] - outputs[i][0], 3), 0)
+            self.assertEqual(round(res[1] - outputs[i][1], 3), 0)
+            res = self.net_alarm.elim_ask(*i1)
+            self.assertEqual(round(res[0] - outputs[i][0], 3), 0)
+            self.assertEqual(round(res[1] - outputs[i][1], 3), 0)
+
 if __name__ == '__main__':
     unittest.main()
-
-'''
-Net
-    __init__
-    _parse
-    makefactor
-    pointwise
-    sumout
-    enum_ask
-    enum_all
-    elim_ask
-query
-main
-'''
