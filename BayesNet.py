@@ -4,7 +4,7 @@ import sys, re, copy, itertools
 
 class Net:
     """
-    Class for Bayesian Network.
+    Class that represents Bayesian Networks.
 
     Data structure(s):
         dictionary that maps variable names to a dictonary {
@@ -43,24 +43,24 @@ class Net:
         self.permutationsmemo = {}
         self.vars = set()
         self.net = {}
-        lines = []
+        lines = []  # buffer
         with open(fname) as f:
             for line in f:
                 if line == '\n':
-                    # parse if encounter a blank line
+                    # parse the buffer if encounter a blank line
                     self._parse(lines)
                     lines = []
                 else:
                     lines.append(line)
-        # there is no blank line at the eof
-        # but we still have to parse the last part
+        # there is no blank line at the end of file
+        # but we still have to parse the last block/buffer
         if len(lines) != 0:
             self._parse(lines)
 
 
     def _parse(self, lines):
         if len(lines) == 1:
-            #  single line
+            # single line node/buffer
             match = re.match(r'P\((.*)\) = (.*)\n', lines[0])
             var, prob = match.group(1).strip(), float(match.group(2).strip())
             self.net[var] = {
@@ -70,6 +70,7 @@ class Net:
                 'condprob': {}
             }
         else:
+            # multi line node/buffer
             # table header
             match = re.match(r'(.*) \| (.*)', lines[0])
             parents, var = match.group(1).split(), match.group(2).strip()
@@ -82,7 +83,7 @@ class Net:
                 'condprob': {}
             }
 
-            # table entries
+            # table rows/distributions
             for probline in lines[2:]:
                 match = re.match(r'(.*) \| (.*)', probline)
                 truth, prob = match.group(1).split(), float(match.group(2).strip())
@@ -131,11 +132,11 @@ class Net:
         >>> net.querygiven('A', e)
         0.71
         """
-        # if Y has no parents
+        # Y has no parents
         if self.net[Y]['prob'] != -1:
             prob = self.net[Y]['prob'] if e[Y] else 1 - self.net[Y]['prob']
 
-        # if Y has at least 1 parent
+        # Y has at least 1 parent
         else:
             # get the value of parents of Y
             parents = tuple(e[p] for p in self.net[Y]['parents'])
@@ -296,7 +297,7 @@ class Net:
         for i, factor in enumerate(factors):
             # for each variable in the factor's variable list
             for j, v in enumerate(factor[0]):
-                # if the variable is the hidden one
+                # if the variable is hidden
                 if v == var:
 
                     # variable list of the new factor
@@ -465,14 +466,14 @@ def query(fname, alg, q):
         alg:    Algorithm to use (enum or elim)
         q:      Query
     """
-    #  construct net
+    # construct the net from the given file name
     try:
         net = Net(fname)
     except:
         print('Failed to parse %s' % fname)
         exit()
 
-    #  parse query
+    # parse the given query
     match = re.match(r'P\((.*)\|(.*)\)', q)
     if match:
         X = match.group(1).strip()
@@ -484,7 +485,7 @@ def query(fname, alg, q):
         e = []
         edict = {}
      
-    #  call function
+    # call the appropriate function
     dist = net.enum_ask(X, edict) if alg == 'enum' else net.elim_ask(X, edict)
     print("\nRESULT:")
     for prob, x in zip(dist, [False, True]):
